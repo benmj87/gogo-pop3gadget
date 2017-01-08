@@ -234,10 +234,171 @@ func Test_CloseErrorOnRead(t *testing.T) {
     }
     
     toTest.Connect()
-    
+        
     testConn.ReadError = errors.New("foo")
+    testConn.ThrowReadErrorAfter = 1
     err := toTest.Close()
     if err == nil {
         t.Error("No error returned")
+    }
+}
+
+// Test_AuthOk tests that auth is ok
+func Test_AuthOk(t *testing.T) {
+    conf := config.NewConfig()
+    conf.UseTLS = false
+    conf.Password = "p4ssw0rd"
+    conf.Username = "foo@bar.com"
+
+    testConn := NewTestConnection()
+    testConn.ToRead = append(testConn.ToRead, "+OK\r\n")
+
+    toTest := NewClient(*conf)
+    toTest.Dialer = func(net string, server string) (net.Conn, error) {
+        return testConn, nil
+    }
+    
+    toTest.Connect()
+    
+    testConn.ToRead = append(testConn.ToRead, "+OK Username ok\r\n")
+    testConn.ToRead = append(testConn.ToRead, "+OK Pass ok\r\n")
+    err := toTest.Auth()
+
+    if err != nil {
+        t.Error("Error returned")
+    }
+    if testConn.Written[0] != "USER foo@bar.com\r\n" {
+        t.Error("Invalid USER written")
+    }
+    if testConn.Written[1] != "PASS p4ssw0rd\r\n" {
+        t.Error("Invalid password written")
+    }
+}
+
+// Test_AuthUsernameError tests that an error is returned on read
+func Test_AuthUsernameError(t *testing.T) {
+    conf := config.NewConfig()
+    conf.UseTLS = false
+    conf.Password = "p4ssw0rd"
+    conf.Username = "foo@bar.com"
+
+    testConn := NewTestConnection()
+    testConn.ToRead = append(testConn.ToRead, "+OK\r\n")
+
+    toTest := NewClient(*conf)
+    toTest.Dialer = func(net string, server string) (net.Conn, error) {
+        return testConn, nil
+    }
+    
+    toTest.Connect()
+    
+    testConn.WriteError = errors.New("foo")
+    testConn.TimesWriteCalled = 0
+    testConn.TimesReadCalled = 0
+    err := toTest.Auth()
+
+    if err == nil {
+        t.Error("Error not returned")
+    }
+
+    testConn.WriteError = nil
+    testConn.TimesWriteCalled = 0
+    testConn.TimesReadCalled = 0
+    testConn.ReadError = errors.New("foo")
+    err = toTest.Auth()
+
+    if err == nil {
+        t.Error("Error not returned")
+    }
+    
+    testConn.WriteError = nil
+    testConn.ReadError = nil
+    testConn.TimesWriteCalled = 0
+    testConn.TimesReadCalled = 0
+    testConn.ToRead = append(testConn.ToRead, "-ERR sumthing wrong\r\n")
+    err = toTest.Auth()
+
+    if err == nil {
+        t.Error("Error not returned")
+    }
+}
+
+// Test_AuthPasswordWriteError tests that an error is returned on writing the password
+func Test_AuthPasswordWriteError(t *testing.T) {
+    conf := config.NewConfig()
+    conf.UseTLS = false
+    conf.Password = "p4ssw0rd"
+    conf.Username = "foo@bar.com"
+
+    testConn := NewTestConnection()
+    testConn.ToRead = append(testConn.ToRead, "+OK\r\n")
+
+    toTest := NewClient(*conf)
+    toTest.Dialer = func(net string, server string) (net.Conn, error) {
+        return testConn, nil
+    }
+    
+    toTest.Connect()
+    
+    testConn.ToRead = append(testConn.ToRead, "+OK\r\n")
+    testConn.WriteError = errors.New("foo")
+    testConn.ThrowWriteErrorAfter = 1 // first write is USER
+    err := toTest.Auth()
+
+    if err == nil {
+        t.Error("Error not returned")
+    }
+}
+
+// Test_AuthPasswordReadError tests that an error is returned on writing the password
+func Test_AuthPasswordReadError(t *testing.T) {
+    conf := config.NewConfig()
+    conf.UseTLS = false
+    conf.Password = "p4ssw0rd"
+    conf.Username = "foo@bar.com"
+
+    testConn := NewTestConnection()
+    testConn.ToRead = append(testConn.ToRead, "+OK\r\n")
+
+    toTest := NewClient(*conf)
+    toTest.Dialer = func(net string, server string) (net.Conn, error) {
+        return testConn, nil
+    }
+    
+    toTest.Connect()
+    
+    testConn.ToRead = append(testConn.ToRead, "+OK\r\n")
+    testConn.ReadError = errors.New("foo")
+    testConn.ThrowReadErrorAfter = 2 // includes connecting and USER
+    err := toTest.Auth()
+
+    if err == nil {
+        t.Error("Error not returned")
+    }
+}
+
+// Test_AuthPasswordReadErrorMsgReturned tests that an error is returned on reading the response from the password
+func Test_AuthPasswordReadErrorMsgReturned(t *testing.T) {
+    conf := config.NewConfig()
+    conf.UseTLS = false
+    conf.Password = "p4ssw0rd"
+    conf.Username = "foo@bar.com"
+
+    testConn := NewTestConnection()
+    testConn.ToRead = append(testConn.ToRead, "+OK\r\n")
+
+    toTest := NewClient(*conf)
+    toTest.Dialer = func(net string, server string) (net.Conn, error) {
+        return testConn, nil
+    }
+    
+    toTest.Connect()
+    
+    testConn.ToRead = append(testConn.ToRead, "+OK\r\n")
+    testConn.ToRead = append(testConn.ToRead, "-ER\r\n")
+    err := toTest.Auth()
+
+    if err == nil {
+        t.Error("Error not returned")
     }
 }

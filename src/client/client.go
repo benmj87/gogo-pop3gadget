@@ -60,6 +60,41 @@ func (c *Client) Connect() error {
     return nil
 }
 
+// Auth calls USER + PASS
+func (c *Client) Auth() error {
+    err := c.writeMsg(fmt.Sprintf("USER %v\r\n", c.config.Username))
+    if err != nil {
+        return err
+    }
+
+    msg, err := c.readMsg()
+    if err != nil {
+        return err
+    }
+    if c.isError(msg) {
+        return errors.New(msg)
+    }
+
+    fmt.Printf(msg)
+
+    err = c.writeMsg(fmt.Sprintf("PASS %v\r\n", c.config.Password))
+    if err != nil {
+        return err
+    }
+
+    msg, err = c.readMsg()
+    if err != nil {
+        return err
+    }
+    if c.isError(msg) {
+        return errors.New(msg)
+    }
+
+    fmt.Printf(msg)
+
+    return nil
+}
+
 // Close issues the Quit command and closes the connection
 func (c *Client) Close() error {
     defer c.connection.Close()

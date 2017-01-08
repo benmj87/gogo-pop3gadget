@@ -8,6 +8,10 @@ type Config struct {
     Server string
     // Port to connect on
     Port int
+    // Username to auth with
+    Username string
+    // Password to auth with
+    Password string
 }
 
 // NewConfig creates a new instance of the config class with the default parameters

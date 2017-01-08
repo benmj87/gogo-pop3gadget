@@ -22,6 +22,14 @@ type TestConnection struct {
     WriteCount int
     // Closed holds whether close has been called
     Closed bool
+    // TimesReadCalled holds the number of times read has been called
+    TimesReadCalled int
+    // TimesWriteCalled holds the number of times Write has been called
+    TimesWriteCalled int
+    // ThrowReadErrorAfter is the TimesWriteCalled to throw the error after
+    ThrowReadErrorAfter int
+    // ThrowWriteErrorAfter is the TimesWriteCalled to throw the error after
+    ThrowWriteErrorAfter int
 }
 
 // NewTestConnection returns a new TestConnection
@@ -31,6 +39,10 @@ func NewTestConnection() *TestConnection {
         Written: make([]string, 0),
         WriteCount: -1,
         Closed: false,
+        TimesReadCalled: 0,
+        TimesWriteCalled: 0,
+        ThrowWriteErrorAfter: 0,
+        ThrowReadErrorAfter: 0,
     }
 }
 
@@ -41,7 +53,7 @@ func (c *TestConnection) Read(b []byte) (n int, err error) {
         return 0, errors.New("b cannot be nil")
     }
 
-    if c.ReadError != nil {
+    if c.ReadError != nil && c.TimesReadCalled == c.ThrowReadErrorAfter {
         return 0, c.ReadError
     }
 
@@ -65,12 +77,13 @@ func (c *TestConnection) Read(b []byte) (n int, err error) {
         toRet = buffLength
     }
     
+    c.TimesReadCalled++
     return toRet, nil
 }
 
 // Write writes data to Written.
 func (c *TestConnection) Write(b []byte) (n int, err error) {
-    if c.WriteError != nil {
+    if c.WriteError != nil && c.ThrowWriteErrorAfter == c.TimesWriteCalled {
         return 0, c.WriteError
     }
 
@@ -78,6 +91,7 @@ func (c *TestConnection) Write(b []byte) (n int, err error) {
         return c.WriteCount, nil
     }
 
+    c.TimesWriteCalled++
     c.Written = append(c.Written, string(b))
     return len(b), nil
 }
