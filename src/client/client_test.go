@@ -402,3 +402,96 @@ func Test_AuthPasswordReadErrorMsgReturned(t *testing.T) {
         t.Error("Error not returned")
     }
 }
+
+// Test_StatOk checks that Stat functions correctly
+func Test_StatOk(t *testing.T) {
+    testConn, toTest, _ := initialiseConnection()
+    testConn.ToRead = append(testConn.ToRead, "+OK 10 1024 vunderbar\r\n")
+
+    msgs, size, err := toTest.Stat()
+
+    if err != nil {
+        t.Error("Error returned")
+    }
+    
+    if testConn.Written[0] != "STAT\r\n" {
+        t.Error("Stat written incorrectly") 
+    }
+    
+    if msgs != 10 || size != 1024 {
+        t.Error("Invalid msg count or size returned")
+    }
+}
+
+// Test_StatErrorOnReadWrite checks that errors are returned correctly on ReadWrite
+func Test_StatErrorOnReadWrite(t *testing.T) {
+    testConn, toTest, _ := initialiseConnection()
+    
+    testConn.ReadError = nil
+    testConn.WriteError = errors.New("Foo")
+    _, _, err := toTest.Stat()
+    if err == nil {
+        t.Error("No error returned")
+    }
+
+    testConn.ReadError = errors.New("Foo")
+    testConn.WriteError = nil
+    _, _, err = toTest.Stat()
+    if err == nil {
+        t.Error("No error returned")
+    }
+}
+
+// Test_StatInvalidMsg checks that errors are handled with incorrect responses returned
+func Test_StatInvalidMsg(t *testing.T) {
+    testConn, toTest, _ := initialiseConnection()
+
+    testConn.ToRead = append(testConn.ToRead, "-ERR uh oh\r\n")    
+    _, _, err := toTest.Stat()
+    if err == nil {
+        t.Error("No error returned")
+    }
+    
+    testConn.ToRead = append(testConn.ToRead, "+OK\r\n")    
+    _, _, err = toTest.Stat()
+    if err == nil {
+        t.Error("No error returned")
+    }
+}
+
+// Test_StatInvalidInt checks that errors are handled with incorrect ints returned
+func Test_StatInvalidInt(t *testing.T) {
+    testConn, toTest, _ := initialiseConnection()
+
+    testConn.ToRead = append(testConn.ToRead, "+OK -1 a\r\n")    
+    _, _, err := toTest.Stat()
+    if err == nil {
+        t.Error("No error returned")
+    }
+    
+    testConn.ToRead = append(testConn.ToRead, "+OK 10 a\r\n")    
+    _, _, err = toTest.Stat()
+    if err == nil {
+        t.Error("No error returned")
+    }
+}
+
+// initialiseConnection initialises a connection calling connect
+// and resetting any read counters back to 0
+func initialiseConnection() (*TestConnection, *Client, *config.Config) {
+    conf := config.NewConfig()
+    conf.UseTLS = false
+
+    testConn := NewTestConnection()
+    testConn.ToRead = append(testConn.ToRead, "+OK\r\n")
+
+    toTest := NewClient(*conf)
+    toTest.Dialer = func(net string, server string) (net.Conn, error) {
+        return testConn, nil
+    }
+    
+    toTest.Connect()
+    testConn.TimesReadCalled = 0
+    
+    return testConn, toTest, conf
+}

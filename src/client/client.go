@@ -7,6 +7,7 @@ import (
     "net"
 	"strings"
     "errors"
+	"strconv"
 )
 
 // Client holds code for the connection
@@ -93,6 +94,42 @@ func (c *Client) Auth() error {
     fmt.Printf(msg)
 
     return nil
+}
+
+// Stat calls the stat pop3 command and returns the number of messages followed
+// by the size of all the messages in bytes
+func (c *Client) Stat() (uint32, uint64, error) {
+    err := c.writeMsg("STAT\r\n")
+    if err != nil {
+        return 0, 0, err
+    }
+
+    msg, err := c.readMsg()
+    if err != nil {
+        return 0, 0, err
+    }
+
+    fmt.Print(msg)
+    if c.isError(msg) {
+        return 0, 0, errors.New(msg)
+    }
+
+    items := strings.Split(strings.Trim(msg, " \r\n\t"), " ")
+    if len(items) < 3 {
+        return 0, 0, fmt.Errorf("Incorrect response from STAT, not enough elements splitting on space, '%v'", msg)
+    }
+
+    totalMsgs, err := strconv.ParseUint(items[1], 10, 32)
+    if err != nil {
+        return 0, 0, fmt.Errorf("Incorrect message count returned %v, error was %v", items[1], err)
+    }
+
+    totalSize, err := strconv.ParseUint(items[2], 10, 64)
+    if err != nil {
+        return 0, 0, fmt.Errorf("Incorrect message count returned %v, error was %v", items[1], err)
+    }
+
+    return uint32(totalMsgs), totalSize, nil
 }
 
 // Close issues the Quit command and closes the connection
