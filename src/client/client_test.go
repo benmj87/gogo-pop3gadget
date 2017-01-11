@@ -476,6 +476,53 @@ func Test_StatInvalidInt(t *testing.T) {
     }
 }
 
+// Test_ListOk checks that a listing works correctly
+func Test_ListOk(t *testing.T) {
+    testConn, toTest, _ := initialiseConnection()
+
+    testConn.ToRead = append(testConn.ToRead, "+OK\r\n1 10\r\n2 4\r\n.\r\n")
+    emails, err := toTest.List()
+    if err != nil {
+        t.Error(err)
+    }
+
+    if len(emails) != 2 {
+        t.Errorf("Invalid length %v", len(emails))
+    }
+    if emails[0].ID != 1 || emails[1].ID != 2 {
+        t.Error("Invalid emails parsed")
+    }
+}
+
+// Test_ListReadWriteError checks that a read and write error returns correctly
+func Test_ListReadWriteError(t *testing.T) {
+    testConn, toTest, _ := initialiseConnection()
+
+    testConn.WriteError = errors.New("foo")
+    _, err := toTest.List()
+    if err == nil {
+        t.Error("Expected an error")
+    }
+    
+    testConn.WriteError = nil
+    testConn.ReadError = errors.New("foo")
+    _, err = toTest.List()
+    if err == nil {
+        t.Error("Expected an error")
+    }
+}
+
+// Test_ListInvalidData checks that an invalid response returns correctly
+func Test_ListInvalidData(t *testing.T) {
+    testConn, toTest, _ := initialiseConnection()
+
+    testConn.ToRead = append(testConn.ToRead, "+OK\r\na\r\n.\r\n")
+    _, err := toTest.List()
+    if err == nil {
+        t.Error("Expected an error")
+    }
+}
+
 // initialiseConnection initialises a connection calling connect
 // and resetting any read counters back to 0
 func initialiseConnection() (*TestConnection, *Client, *config.Config) {

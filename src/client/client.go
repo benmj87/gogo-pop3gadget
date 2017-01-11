@@ -10,6 +10,15 @@ import (
 	"strconv"
 )
 
+const (
+    // singleLineMessageTerminator is the standard terminator for single line commands
+    // e.g. STAT
+    singleLineMessageTerminator = "\r\n"
+    // multiLineMessageTerminator is the standard terminator for multi-line commands
+    // e.g. LIST
+    multiLineMessageTerminator = ".\r\n"
+)
+
 // Client holds code for the connection
 type Client struct {
     // the config for the connection
@@ -47,7 +56,7 @@ func (c *Client) Connect() error {
     }
 
     msg := ""
-    msg, err = c.readMsg()
+    msg, err = c.readMsg(singleLineMessageTerminator)
     if err != nil {
         return err
     }
@@ -68,7 +77,7 @@ func (c *Client) Auth() error {
         return err
     }
 
-    msg, err := c.readMsg()
+    msg, err := c.readMsg(singleLineMessageTerminator)
     if err != nil {
         return err
     }
@@ -83,7 +92,7 @@ func (c *Client) Auth() error {
         return err
     }
 
-    msg, err = c.readMsg()
+    msg, err = c.readMsg(singleLineMessageTerminator)
     if err != nil {
         return err
     }
@@ -104,7 +113,7 @@ func (c *Client) Stat() (uint32, uint64, error) {
         return 0, 0, err
     }
 
-    msg, err := c.readMsg()
+    msg, err := c.readMsg(singleLineMessageTerminator)
     if err != nil {
         return 0, 0, err
     }
@@ -132,6 +141,38 @@ func (c *Client) Stat() (uint32, uint64, error) {
     return uint32(totalMsgs), totalSize, nil
 }
 
+// List implements the LIST call returning a list of all messages and their size
+func (c *Client) List() ([]*Email, error) {
+    err := c.writeMsg("LIST\r\n")
+    if err != nil {
+        return nil, err
+    }
+
+    msg, err := c.readMsg(multiLineMessageTerminator)
+    if err != nil {
+        return nil, err
+    }
+    
+    fmt.Print(msg)
+
+    var emails []*Email
+    lines := strings.Split(msg, "\r\n")
+
+    // remove the first item (expecting +OK) and last item (expecing terminator)
+    lines = lines[1:len(lines) -2]
+    for _, line := range lines {
+        email := NewEmail()
+        err := email.ParseLine(line)
+        if err != nil {
+            return nil, err
+        }
+
+        emails = append(emails, email)
+    }
+
+    return emails, nil
+}
+
 // Close issues the Quit command and closes the connection
 func (c *Client) Close() error {
     defer c.connection.Close()
@@ -140,7 +181,7 @@ func (c *Client) Close() error {
         return err
     }
 
-    msg, err := c.readMsg()
+    msg, err := c.readMsg(singleLineMessageTerminator)
     if err != nil {
         return err
     }
@@ -178,16 +219,16 @@ func (c *Client) writeMsg(msg string) error {
     return nil
 }
 
-// readMsg reads data in chunks from the connection until \r\n is detected
-func (c *Client) readMsg() (string, error) { 
+// readMsg reads data in chunks from the connection until terminator is detected
+func (c *Client) readMsg(terminator string) (string, error) { 
     const BuffSize int = 1024
-       
+
     msg := ""
     data := make([]byte, BuffSize)
     
     var err error
     var read int
-    for err == nil && !strings.HasSuffix(msg, "\r\n") {
+    for err == nil && !strings.HasSuffix(msg, terminator) {
         read, err = c.connection.Read(data)
         msg += string(data[:read])
     }

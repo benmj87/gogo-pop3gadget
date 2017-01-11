@@ -39,4 +39,9 @@ func main() {
     if err != nil {
         panic(err)
     }
+
+    _, err = client.List() 
+    if err != nil {
+        panic(err)
+    }
 }
