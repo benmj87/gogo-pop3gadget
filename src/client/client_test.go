@@ -523,6 +523,50 @@ func Test_ListInvalidData(t *testing.T) {
     }
 }
 
+// Test_ListMessageOk checks that List is called correctly
+func Test_ListMessageOk(t *testing.T) {
+    testConn, toTest, _ := initialiseConnection()
+
+    testConn.ToRead = append(testConn.ToRead, "+OK 10 100\r\n")
+    email, err := toTest.ListMessage(10)
+    if err != nil {
+        t.Error("An error happened")
+    }
+
+    if email.ID != 10 || email.Size != 100 {
+        t.Error("Invalid ID or Size")
+    }
+}
+
+// Test_ListMessageReadWriteError checks that a read and write error returns correctly
+func Test_ListMessageReadWriteError(t *testing.T) {
+    testConn, toTest, _ := initialiseConnection()
+
+    testConn.WriteError = errors.New("foo")
+    _, err := toTest.ListMessage(10)
+    if err == nil {
+        t.Error("Expected an error")
+    }
+    
+    testConn.WriteError = nil
+    testConn.ReadError = errors.New("foo")
+    _, err = toTest.ListMessage(10)
+    if err == nil {
+        t.Error("Expected an error")
+    }
+}
+
+// Test_ListMessageInvalidData checks that an invalid response returns correctly
+func Test_ListMessageInvalidData(t *testing.T) {
+    testConn, toTest, _ := initialiseConnection()
+
+    testConn.ToRead = append(testConn.ToRead, "+OK 10\r\n")
+    _, err := toTest.ListMessage(10)
+    if err == nil {
+        t.Error("Expected an error")
+    }
+}
+
 // initialiseConnection initialises a connection calling connect
 // and resetting any read counters back to 0
 func initialiseConnection() (*TestConnection, *Client, *config.Config) {

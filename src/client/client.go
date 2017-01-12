@@ -141,6 +141,29 @@ func (c *Client) Stat() (uint32, uint64, error) {
     return uint32(totalMsgs), totalSize, nil
 }
 
+// ListMessage calls LIST {ID} and returns the appropriate message information
+func (c *Client) ListMessage(messageID int) (*Email, error) {
+    err := c.writeMsg(fmt.Sprintf("LIST %v\r\n", messageID))
+    if err != nil {
+        return nil, err
+    }
+
+    msg, err := c.readMsg(singleLineMessageTerminator)
+    if err != nil {
+        return nil, err
+    }
+
+    fmt.Print(msg)
+
+    email := NewEmail()
+    err = email.ParseSingleLine(msg)
+    if err != nil {
+        return nil, err
+    }
+
+    return email, nil
+}
+
 // List implements the LIST call returning a list of all messages and their size
 func (c *Client) List() ([]*Email, error) {
     err := c.writeMsg("LIST\r\n")

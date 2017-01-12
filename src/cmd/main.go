@@ -40,8 +40,15 @@ func main() {
         panic(err)
     }
 
-    _, err = client.List() 
+    emails, err := client.List() 
     if err != nil {
         panic(err)
+    }
+
+    for _, email := range emails {
+        _, err = client.ListMessage(email.ID)
+        if err != nil {
+            panic(err)
+        }
     }
 }
