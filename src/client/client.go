@@ -155,6 +155,10 @@ func (c *Client) ListMessage(messageID int) (*Email, error) {
 
     fmt.Print(msg)
 
+    if c.isError(msg) {
+        return nil, errors.New(msg)
+    }
+
     email := NewEmail()
     err = email.ParseSingleLine(msg)
     if err != nil {

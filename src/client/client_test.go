@@ -565,6 +565,12 @@ func Test_ListMessageInvalidData(t *testing.T) {
     if err == nil {
         t.Error("Expected an error")
     }
+    
+    testConn.ToRead = append(testConn.ToRead, "-ERR\r\n")
+    _, err = toTest.ListMessage(10)
+    if err == nil {
+        t.Error("Expected an error")
+    }
 }
 
 // initialiseConnection initialises a connection calling connect
