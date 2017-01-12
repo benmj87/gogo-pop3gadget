@@ -50,5 +50,10 @@ func main() {
         if err != nil {
             panic(err)
         }
+
+        _, err = client.Retrieve(email.ID) 
+        if err != nil {
+            panic(err)
+        }
     }
 }

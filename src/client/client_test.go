@@ -573,6 +573,52 @@ func Test_ListMessageInvalidData(t *testing.T) {
     }
 }
 
+// Test_RetrieveOk Checks that a message is retrieved correctly
+func Test_RetrieveOk(t *testing.T) {
+    testConn, toTest, _ := initialiseConnection()
+
+    testConn.ToRead = append(testConn.ToRead, "+OK 100\r\nThe message\r\n.\r\n")
+    email, err := toTest.Retrieve(10)
+
+    if err != nil {
+        t.Error("Error returned")
+    }
+    if testConn.Written[0] != "RETR 10\r\n" {
+        t.Error("Invalid command")
+    }
+    if email.ID != 10 && email.Message != "The message" {
+        t.Error("Invalid message")
+    }
+}
+
+// Test_ErrorReturned Checks that a message error is returned
+func Test_ErrorReturned(t *testing.T) {
+    testConn, toTest, _ := initialiseConnection()
+
+    testConn.ToRead = append(testConn.ToRead, "-ERR 100\r\nThe message\r\n.\r\n")
+    _, err := toTest.Retrieve(10)
+    if err == nil {
+        t.Error("No error returned")
+    }
+}
+
+// Test_ReadWriteError checks for read and write errors
+func Test_ReadWriteError(t *testing.T) {
+testConn, toTest, _ := initialiseConnection()
+    testConn.WriteError = errors.New("foo")
+    _, err := toTest.Retrieve(10)
+    if err == nil {
+        t.Error("Expected an error")
+    }
+    
+    testConn.WriteError = nil
+    testConn.ReadError = errors.New("foo")
+    _, err = toTest.Retrieve(10)
+    if err == nil {
+        t.Error("Expected an error")
+    }
+}
+
 // initialiseConnection initialises a connection calling connect
 // and resetting any read counters back to 0
 func initialiseConnection() (*TestConnection, *Client, *config.Config) {

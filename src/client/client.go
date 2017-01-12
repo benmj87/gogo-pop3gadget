@@ -200,6 +200,33 @@ func (c *Client) List() ([]*Email, error) {
     return emails, nil
 }
 
+// Retrieve retrieves a single message based upon the message ID
+func (c *Client) Retrieve(ID int) (*Email, error) {
+    err := c.writeMsg(fmt.Sprintf("RETR %v\r\n", ID))
+    if err != nil {
+        return nil, err
+    }
+
+    msg, err := c.readMsg(multiLineMessageTerminator)
+    if err != nil {
+        return nil, err
+    }
+
+    fmt.Print(msg)
+
+    firstLine := msg[0:strings.Index(msg, "\r\n") -1] // grab the first line which should be +OK {SIZE}\r\n    
+    if c.isError(firstLine) {
+        return nil, errors.New(firstLine)
+    }
+
+    email := NewEmail()
+    email.ID = ID
+    email.Message = msg[len(firstLine):] // remove the first line
+    email.Message = msg[:len(email.Message) -5] // remove the multiLine terminator 
+
+    return email, nil
+}
+
 // Close issues the Quit command and closes the connection
 func (c *Client) Close() error {
     defer c.connection.Close()

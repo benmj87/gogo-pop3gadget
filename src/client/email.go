@@ -12,6 +12,8 @@ type Email struct {
     ID int
     // Size holds the message size in bytes
     Size uint
+    // Message holds the message content
+    Message string
 }
 
 // NewEmail creates a new email based upon the ID and Size
