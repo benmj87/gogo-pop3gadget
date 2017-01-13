@@ -227,6 +227,26 @@ func (c *Client) Retrieve(ID int) (*Email, error) {
     return email, nil
 }
 
+// Delete deletes the message from the server
+func (c *Client) Delete(ID int) error {
+    err := c.writeMsg(fmt.Sprintf("DELE %v\r\n", ID))
+    if err != nil {
+        return err
+    }
+
+    msg, err := c.readMsg(singleLineMessageTerminator)
+    if err != nil {
+        return err
+    }    
+    if c.isError(msg) {
+        return fmt.Errorf("Unknown error returned %v", msg)
+    }
+
+    fmt.Print(msg)
+
+    return nil
+}
+
 // Close issues the Quit command and closes the connection
 func (c *Client) Close() error {
     defer c.connection.Close()

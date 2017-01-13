@@ -591,8 +591,8 @@ func Test_RetrieveOk(t *testing.T) {
     }
 }
 
-// Test_ErrorReturned Checks that a message error is returned
-func Test_ErrorReturned(t *testing.T) {
+// Test_RetrieveErrorReturned Checks that a message error is returned
+func Test_RetrieveErrorReturned(t *testing.T) {
     testConn, toTest, _ := initialiseConnection()
 
     testConn.ToRead = append(testConn.ToRead, "-ERR 100\r\nThe message\r\n.\r\n")
@@ -602,8 +602,8 @@ func Test_ErrorReturned(t *testing.T) {
     }
 }
 
-// Test_ReadWriteError checks for read and write errors
-func Test_ReadWriteError(t *testing.T) {
+// Test_RetrieveReadWriteError checks for read and write errors
+func Test_RetrieveReadWriteError(t *testing.T) {
 testConn, toTest, _ := initialiseConnection()
     testConn.WriteError = errors.New("foo")
     _, err := toTest.Retrieve(10)
@@ -616,6 +616,56 @@ testConn, toTest, _ := initialiseConnection()
     _, err = toTest.Retrieve(10)
     if err == nil {
         t.Error("Expected an error")
+    }
+}
+
+// Test_DeleteOk checks that DELE is called correctly
+func Test_DeleteOk(t *testing.T) {
+    testConn, toTest, _ := initialiseConnection()
+
+    testConn.ToRead = append(testConn.ToRead, "+OK deleted\r\n")
+    err := toTest.Delete(10)
+
+    if err != nil {
+        t.Error("Error returned")
+    }
+    if testConn.Written[0] != "DELE 10\r\n" {
+        t.Error("Invalid command")
+    }
+}
+
+// Test_DeleteReadWriteError checks that when DELE is called a read write error
+func Test_DeleteReadWriteError(t *testing.T) {
+    testConn, toTest, _ := initialiseConnection()
+
+    testConn.ToRead = append(testConn.ToRead, "+OK deleted\r\n")
+    testConn.WriteError = errors.New("foo")
+    testConn.ReadError = nil
+    err := toTest.Delete(10)
+
+    if err == nil {
+        t.Error("No error returned")
+    }
+    
+    testConn.ToRead = append(testConn.ToRead, "+OK deleted\r\n")
+    testConn.ReadError = errors.New("foo")
+    testConn.WriteError = nil
+    err = toTest.Delete(10)
+
+    if err == nil {
+        t.Error("No error returned")
+    }
+}
+
+// Test_DeleteErrorMsg checks that when DELE is called and an error thats returned is handled
+func Test_DeleteErrorMsg(t *testing.T) {
+    testConn, toTest, _ := initialiseConnection()
+
+    testConn.ToRead = append(testConn.ToRead, "-ERR deleted\r\n")
+    err := toTest.Delete(10)
+
+    if err == nil {
+        t.Error("No error returned")
     }
 }
 

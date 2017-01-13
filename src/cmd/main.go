@@ -55,5 +55,10 @@ func main() {
         if err != nil {
             panic(err)
         }
+
+        err = client.Delete(email.ID)
+        if err != nil {
+            panic(err)
+        }
     }
 }
