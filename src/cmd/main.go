@@ -61,4 +61,9 @@ func main() {
             panic(err)
         }
     }
+
+    err = client.Reset()
+    if err != nil {
+        panic(err)
+    }
 }

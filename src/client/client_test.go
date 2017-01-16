@@ -669,6 +669,56 @@ func Test_DeleteErrorMsg(t *testing.T) {
     }
 }
 
+// Test_ResetOk checks that RSET is called correctly
+func Test_ResetOk(t *testing.T) {
+    testConn, toTest, _ := initialiseConnection()
+
+    testConn.ToRead = append(testConn.ToRead, "+OK 2 msgs\r\n")
+    err := toTest.Reset()
+
+    if err != nil {
+        t.Error("Error returned")
+    }
+    if testConn.Written[0] != "RSET\r\n" {
+        t.Error("Invalid command")
+    }
+}
+
+// Test_ResetReadWriteError checks that when RSET is called a read write error is handled
+func Test_ResetReadWriteError(t *testing.T) {
+    testConn, toTest, _ := initialiseConnection()
+
+    testConn.ToRead = append(testConn.ToRead, "+OK 2 msgs\r\n")
+    testConn.WriteError = errors.New("foo")
+    testConn.ReadError = nil
+    err := toTest.Reset()
+
+    if err == nil {
+        t.Error("No error returned")
+    }
+    
+    testConn.ToRead = append(testConn.ToRead, "+OK 2 msgs\r\n")
+    testConn.ReadError = errors.New("foo")
+    testConn.WriteError = nil
+    err = toTest.Reset()
+
+    if err == nil {
+        t.Error("No error returned")
+    }
+}
+
+// Test_ResetErrorMsg checks that when RSET is called and an error thats returned is handled
+func Test_ResetErrorMsg(t *testing.T) {
+    testConn, toTest, _ := initialiseConnection()
+
+    testConn.ToRead = append(testConn.ToRead, "-ERR unknown\r\n")
+    err := toTest.Reset()
+
+    if err == nil {
+        t.Error("No error returned")
+    }
+}
+
 // initialiseConnection initialises a connection calling connect
 // and resetting any read counters back to 0
 func initialiseConnection() (*TestConnection, *Client, *config.Config) {

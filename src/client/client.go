@@ -247,6 +247,26 @@ func (c *Client) Delete(ID int) error {
     return nil
 }
 
+// Reset issues the RSET command
+func (c *Client) Reset() error {
+    err := c.writeMsg("RSET\r\n")
+    if err != nil {
+        return err
+    }
+
+    msg, err := c.readMsg(singleLineMessageTerminator)
+    if err != nil {
+        return err
+    }
+    if c.isError(msg) {
+        return fmt.Errorf("Unknown error returned %v", msg)
+    }
+
+    fmt.Print(msg)
+
+    return nil
+}
+
 // Close issues the Quit command and closes the connection
 func (c *Client) Close() error {
     defer c.connection.Close()
