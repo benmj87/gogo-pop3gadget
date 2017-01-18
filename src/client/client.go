@@ -36,6 +36,9 @@ func NewClient(conf config.Config) *Client {
     return &Client{
         config: conf,
         Dialer: net.Dial,
+        TLSDialer: func(network string, addr string, config *tls.Config) (net.Conn, error) {
+            return tls.Dial(network, addr, config)
+        },
     }
 }
 
