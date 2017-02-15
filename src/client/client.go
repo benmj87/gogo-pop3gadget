@@ -51,7 +51,7 @@ func (c *Client) Connect() error {
         c.connection, err = c.TLSDialer("tcp", fmt.Sprintf("%v:%v", c.config.Server, c.config.Port), &tls.Config{})
     } else {
         fmt.Printf("Connecting to %v:%v\n", c.config.Server, c.config.Port)
-        c.connection, err = c.Dialer("tcp", c.config.Server + ":" + string(c.config.Port))
+        c.connection, err = c.Dialer("tcp", fmt.Sprintf("%v:%v", c.config.Server, c.config.Port))
     }
     
     if err != nil {
