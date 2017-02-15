@@ -217,15 +217,16 @@ func (c *Client) Retrieve(ID int) (*Email, error) {
 
     fmt.Print(msg)
 
-    firstLine := msg[0:strings.Index(msg, "\r\n") -1] // grab the first line which should be +OK {SIZE}\r\n    
+    firstLine := msg[0:strings.Index(msg, "\r\n")] // grab the first line which should be +OK {SIZE}\r\n  
     if c.isError(firstLine) {
         return nil, errors.New(firstLine)
     }
 
     email := NewEmail()
     email.ID = ID
-    email.Message = msg[len(firstLine):] // remove the first line
-    email.Message = msg[:len(email.Message) -5] // remove the multiLine terminator 
+    email.Message = msg[len(firstLine) + 2:] // remove the first line
+    email.Message = email.Message[:len(email.Message) -5] // remove the multiLine terminator 
+    email.Message = strings.TrimSpace(email.Message) // get rid of first and last \r\n's
 
     return email, nil
 }
