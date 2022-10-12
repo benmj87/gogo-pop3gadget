@@ -70,8 +70,6 @@ func (c *Client) Connect() error {
 		return errors.New(msg)
 	}
 
-	fmt.Print(msg)
-
 	return nil
 }
 
@@ -90,8 +88,6 @@ func (c *Client) Auth() error {
 		return errors.New(msg)
 	}
 
-	fmt.Printf(msg)
-
 	err = c.writeMsg(fmt.Sprintf("PASS %v\r\n", c.config.Password))
 	if err != nil {
 		return err
@@ -105,7 +101,7 @@ func (c *Client) Auth() error {
 		return errors.New(msg)
 	}
 
-	fmt.Printf(msg)
+	fmt.Printf("Authenticated\n")
 
 	return nil
 }
@@ -123,7 +119,7 @@ func (c *Client) Stat() (uint32, uint64, error) {
 		return 0, 0, err
 	}
 
-	fmt.Print(msg)
+	fmt.Print("Fetching number of messages\n")
 	if c.isError(msg) {
 		return 0, 0, errors.New(msg)
 	}
@@ -158,7 +154,7 @@ func (c *Client) ListMessage(messageID int) (*Email, error) {
 		return nil, err
 	}
 
-	fmt.Print(msg)
+	fmt.Printf("Listing message %d\n", messageID)
 
 	if c.isError(msg) {
 		return nil, errors.New(msg)
@@ -185,7 +181,7 @@ func (c *Client) List() ([]*Email, error) {
 		return nil, err
 	}
 
-	fmt.Print(msg)
+	fmt.Print("Listing messages\n")
 
 	var emails []*Email
 	lines := strings.Split(msg, "\r\n")
@@ -217,7 +213,7 @@ func (c *Client) Retrieve(ID int) (*Email, error) {
 		return nil, err
 	}
 
-	fmt.Print(msg)
+	fmt.Printf("Fetching message %d\n", ID)
 
 	firstLine := msg[0:strings.Index(msg, "\r\n")] // grab the first line which should be +OK {SIZE}\r\n
 	if c.isError(firstLine) {
@@ -248,7 +244,7 @@ func (c *Client) Delete(ID int) error {
 		return fmt.Errorf("Unknown error returned %v", msg)
 	}
 
-	fmt.Print(msg)
+	fmt.Printf("Deleting message %d\n", ID)
 
 	return nil
 }
@@ -268,7 +264,7 @@ func (c *Client) Reset() error {
 		return fmt.Errorf("Unknown error returned %v", msg)
 	}
 
-	fmt.Print(msg)
+	fmt.Print("Calling reset\n")
 
 	return nil
 }
@@ -281,12 +277,12 @@ func (c *Client) Close() error {
 		return err
 	}
 
-	msg, err := c.readMsg(singleLineMessageTerminator)
+	_, err = c.readMsg(singleLineMessageTerminator)
 	if err != nil {
 		return err
 	}
 
-	fmt.Print(msg)
+	fmt.Print("Closing connection\n")
 
 	return nil
 }
@@ -305,7 +301,6 @@ func (c *Client) isError(msg string) bool {
 
 // writeMsg writes the data to the connection and checks for errors
 func (c *Client) writeMsg(msg string) error {
-	fmt.Print(msg)
 	written, err := c.connection.Write([]byte(msg))
 
 	if err != nil {
