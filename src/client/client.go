@@ -222,9 +222,7 @@ func (c *Client) Retrieve(ID int) (*Email, error) {
 
 	email := NewEmail()
 	email.ID = ID
-	email.Message = msg[len(firstLine)+2:]               // remove the first line
-	email.Message = email.Message[:len(email.Message)-5] // remove the multiLine terminator
-	email.Message = strings.TrimSpace(email.Message)     // get rid of first and last \r\n's
+	email.Message = msg[len(firstLine)+2:] // remove the first line
 
 	return email, nil
 }
