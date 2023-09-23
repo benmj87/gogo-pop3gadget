@@ -330,7 +330,9 @@ func (c *Client) readMsg(terminator string) (string, error) {
 		msg += string(data[:read])
 	}
 
-	fmt.Printf("READING %s\n", msg)
+	lines := strings.Split(msg, "\r\n")
+	fmt.Printf("READING %s\n", lines[0]) // only print the first line to avoid printing the whole message
+	fmt.Printf("READ %v bytes\n", len(msg))
 
 	if err != nil {
 		return "", err
