@@ -299,6 +299,7 @@ func (c *Client) isError(msg string) bool {
 
 // writeMsg writes the data to the connection and checks for errors
 func (c *Client) writeMsg(msg string) error {
+	fmt.Printf("WRITING %s\n", msg)
 	written, err := c.connection.Write([]byte(msg))
 
 	if err != nil {
@@ -325,6 +326,8 @@ func (c *Client) readMsg(terminator string) (string, error) {
 		read, err = c.connection.Read(data)
 		msg += string(data[:read])
 	}
+
+	fmt.Printf("READING %s\n", msg)
 
 	if err != nil {
 		return "", err
