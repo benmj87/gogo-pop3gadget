@@ -208,12 +208,26 @@ func (c *Client) Retrieve(ID int) (*Email, error) {
 		return nil, err
 	}
 
-	msg, err := c.readMsg(multiLineMessageTerminator)
+	msg := ""
+	msg, err = c.readMsg(singleLineMessageTerminator) // grab the first line which should be +OK {SIZE}\r\n
 	if err != nil && err != io.EOF {
 		return nil, err
 	}
 
-	fmt.Printf("Fetching message %d\n", ID)
+	msg = strings.Replace(msg, "+OK ", "", -1)
+	msg = strings.TrimSpace(msg)
+	length, err := strconv.ParseInt(msg, 10, 16)
+	if err != nil {
+		return nil, err
+	}
+
+	l := int(length)
+	fmt.Printf("Fetching message %d of length %d\n", ID, l)
+
+	msg, err = c.readMsgLength(l)
+	if err != nil && err != io.EOF {
+		return nil, err
+	}
 
 	firstLine := msg[0:strings.Index(msg, "\r\n")] // grab the first line which should be +OK {SIZE}\r\n
 	if c.isError(firstLine) {
@@ -222,7 +236,7 @@ func (c *Client) Retrieve(ID int) (*Email, error) {
 
 	email := NewEmail()
 	email.ID = ID
-	email.Message = msg[len(firstLine)+2:] // remove the first line
+	email.Message = msg
 
 	return email, nil
 }
@@ -314,6 +328,28 @@ func (c *Client) writeMsg(msg string) error {
 	}
 
 	return nil
+}
+
+// readMsg reads data in chunks from the connection until terminator is detected
+func (c *Client) readMsgLength(length int) (string, error) {
+	msg := ""
+	data := make([]byte, length)
+
+	var err error
+	var read int
+
+	read, err = c.connection.Read(data)
+	msg += string(data[:read])
+
+	lines := strings.Split(msg, "\r\n")
+	fmt.Printf("READING %s\n", lines[0]) // only print the first line to avoid printing the whole message
+	fmt.Printf("READ %v bytes\n", len(msg))
+
+	if err != nil {
+		return "", err
+	}
+
+	return msg, nil
 }
 
 // readMsg reads data in chunks from the connection until terminator is detected
