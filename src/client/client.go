@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
 	"strconv"
 	"strings"
 
@@ -214,7 +215,8 @@ func (c *Client) Retrieve(ID int) (*Email, error) {
 		return nil, err
 	}
 
-	msg = strings.Replace(msg, "+OK ", "", -1)
+	msg = strings.Replace(msg, "+OK", "", -1)
+	msg = strings.Replace(msg, "octets", "", -1)
 	msg = strings.TrimSpace(msg)
 	length, err := strconv.ParseInt(msg, 10, 16)
 	if err != nil {
@@ -229,14 +231,18 @@ func (c *Client) Retrieve(ID int) (*Email, error) {
 		return nil, err
 	}
 
-	firstLine := msg[0:strings.Index(msg, "\r\n")] // grab the first line which should be +OK {SIZE}\r\n
-	if c.isError(firstLine) {
-		return nil, errors.New(firstLine)
+	msg2, err := c.readMsg(multiLineMessageTerminator)
+	if err != nil && err != io.EOF {
+		return nil, err
 	}
+
+	fmt.Printf("Missing data was %s length %d\n", msg2, len(msg2))
 
 	email := NewEmail()
 	email.ID = ID
-	email.Message = msg
+	email.Message = msg + msg2
+
+	os.WriteFile("d:\\temp\\foo.txt", []byte(email.Message), 0644)
 
 	return email, nil
 }
