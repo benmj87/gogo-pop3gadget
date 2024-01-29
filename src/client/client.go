@@ -18,7 +18,7 @@ const (
 	singleLineMessageTerminator = "\r\n"
 	// multiLineMessageTerminator is the standard terminator for multi-line commands
 	// e.g. LIST
-	multiLineMessageTerminator = ".\r\n"
+	multiLineMessageTerminator = "\r\n.\r\n"
 )
 
 // Client holds code for the connection
@@ -186,8 +186,8 @@ func (c *Client) List() ([]*Email, error) {
 	var emails []*Email
 	lines := strings.Split(msg, "\r\n")
 
-	// remove the first item (expecting +OK) and last item (expecing terminator)
-	lines = lines[1 : len(lines)-2]
+	// remove the first item (expecting +OK)
+	lines = lines[1:]
 	for _, line := range lines {
 		email := NewEmail()
 		err := email.ParseLine(line)
@@ -333,6 +333,12 @@ func (c *Client) readMsg(terminator string) (string, error) {
 	lines := strings.Split(msg, "\r\n")
 	fmt.Printf("READING %s\n", lines[0]) // only print the first line to avoid printing the whole message
 	fmt.Printf("READ %v bytes\n", len(msg))
+
+	if terminator == multiLineMessageTerminator {
+		// for multi line messages - any '.' are "byte-stuffed" so have to undo this
+		msg = strings.Replace(msg, "\r\n..", "\r\n.", -1)
+		msg = msg[:len(msg)-len(terminator)]
+	}
 
 	if err != nil {
 		return "", err
